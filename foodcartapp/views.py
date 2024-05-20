@@ -3,6 +3,7 @@ import json
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.templatetags.static import static
+from rest_framework.decorators import api_view
 
 
 from .models import Product, Order, OrderProduct
@@ -60,9 +61,9 @@ def product_list_api(request):
     })
 
 
+@api_view(['POST'])
 def register_order(request):
-    order = json.loads(request.body.decode())
-    print(order)
+    order = request.data
 
     db_order = Order.objects.create(
         first_name=order['firstname'],

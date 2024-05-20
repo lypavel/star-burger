@@ -1,9 +1,9 @@
-import json
-
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.templatetags.static import static
+from rest_framework import status
 from rest_framework.decorators import api_view
+from rest_framework.response import Response
 
 
 from .models import Product, Order, OrderProduct
@@ -64,6 +64,10 @@ def product_list_api(request):
 @api_view(['POST'])
 def register_order(request):
     order = request.data
+    products = order.get('products')
+    if not products or not isinstance(products, list):
+        content = {'error': 'products key not presented, not list or empty'}
+        return Response(content, status=status.HTTP_406_NOT_ACCEPTABLE)
 
     db_order = Order.objects.create(
         first_name=order['firstname'],
@@ -82,4 +86,4 @@ def register_order(request):
             amount=order_product['quantity']
         )
 
-    return JsonResponse({})
+    return Response({})

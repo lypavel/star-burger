@@ -4,7 +4,8 @@ from django.templatetags.static import static
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-
+from phonenumbers import is_valid_number, parse
+from phonenumbers.phonenumberutil import NumberParseException
 
 from .models import Product, Order, OrderProduct
 
@@ -63,11 +64,44 @@ def product_list_api(request):
 
 @api_view(['POST'])
 def register_order(request):
+    required_fields = {
+        'products': list,
+        'firstname': str,
+        'lastname': str,
+        'phonenumber': str,
+        'address': str
+    }
     order = request.data
-    products = order.get('products')
-    if not products or not isinstance(products, list):
-        content = {'error': 'products key not presented, not list or empty'}
-        return Response(content, status=status.HTTP_406_NOT_ACCEPTABLE)
+    error_msg = {}
+
+    for field_name, field_type in required_fields.items():
+        if field_name not in order:
+            error_msg['error'] = f'{field_name} key is missing.'
+            return Response(error_msg, status=status.HTTP_406_NOT_ACCEPTABLE)
+        elif not isinstance(order[field_name], field_type):
+            error_msg['error'] = f'{field_name} is not {field_type}'
+            return Response(error_msg, status=status.HTTP_406_NOT_ACCEPTABLE)
+        elif not order[field_name]:
+            error_msg['error'] = f'{field_name} is empty.'
+            return Response(error_msg, status=status.HTTP_406_NOT_ACCEPTABLE)
+
+    products = order['products']
+    for product in products:
+        try:
+            Product.objects.get(pk=product['product'])
+        except Product.DoesNotExist:
+            error_msg['error'] = f'Product with id {product["product"]} does not exists.'
+            return Response(error_msg, status=status.HTTP_406_NOT_ACCEPTABLE)
+
+    try:
+        parsed_number = parse(order['phonenumber'])
+    except NumberParseException:
+        error_msg['error'] = f'Phone number {order["phonenumber"]} is not valid.'
+        return Response(error_msg, status=status.HTTP_406_NOT_ACCEPTABLE)
+
+    if not is_valid_number(parsed_number):
+        error_msg['error'] = f'Phone number {order["phonenumber"]} is not valid.'
+        return Response(error_msg, status=status.HTTP_406_NOT_ACCEPTABLE)
 
     db_order = Order.objects.create(
         first_name=order['firstname'],

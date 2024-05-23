@@ -3,7 +3,7 @@ from django.templatetags.static import static
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from .models import Product, Order
+from .models import Product, Order, OrderProduct
 from .serializers import OrderSerializer
 
 
@@ -67,17 +67,17 @@ def register_order(request):
     validated_order = serializer.validated_data
 
     db_order = Order.objects.create(
-        first_name=validated_order['firstname'],
-        last_name=validated_order['lastname'],
-        phone_number=validated_order['phonenumber'],
+        firstname=validated_order['firstname'],
+        lastname=validated_order['lastname'],
+        phonenumber=validated_order['phonenumber'],
         address=validated_order['address'],
     )
 
     product_fields = validated_order['products']
     products = [
-        Product(order=db_order, **fields) for fields in product_fields
+        OrderProduct(order=db_order, **fields) for fields in product_fields
     ]
 
-    Product.objects.bulk_create(products)
+    OrderProduct.objects.bulk_create(products)
 
     return Response({})

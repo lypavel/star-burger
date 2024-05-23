@@ -2,6 +2,7 @@ from django.http import JsonResponse
 from django.templatetags.static import static
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from rest_framework import status as st
 
 from .models import Product, Order, OrderProduct
 from .serializers import OrderSerializer
@@ -80,4 +81,4 @@ def register_order(request):
 
     OrderProduct.objects.bulk_create(products)
 
-    return Response({})
+    return Response(OrderSerializer(db_order).data, status=st.HTTP_201_CREATED)

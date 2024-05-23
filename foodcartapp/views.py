@@ -1,13 +1,10 @@
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404
 from django.templatetags.static import static
-from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from phonenumbers import is_valid_number, parse
-from phonenumbers.phonenumberutil import NumberParseException
 
-from .models import Product, Order, OrderProduct
+from .models import Product, Order
+from .serializers import OrderSerializer
 
 
 def banners_list_api(request):
@@ -64,60 +61,23 @@ def product_list_api(request):
 
 @api_view(['POST'])
 def register_order(request):
-    required_fields = {
-        'products': list,
-        'firstname': str,
-        'lastname': str,
-        'phonenumber': str,
-        'address': str
-    }
-    order = request.data
-    error_msg = {}
 
-    for field_name, field_type in required_fields.items():
-        if field_name not in order:
-            error_msg['error'] = f'{field_name} key is missing.'
-            return Response(error_msg, status=status.HTTP_406_NOT_ACCEPTABLE)
-        elif not isinstance(order[field_name], field_type):
-            error_msg['error'] = f'{field_name} is not {field_type}'
-            return Response(error_msg, status=status.HTTP_406_NOT_ACCEPTABLE)
-        elif not order[field_name]:
-            error_msg['error'] = f'{field_name} is empty.'
-            return Response(error_msg, status=status.HTTP_406_NOT_ACCEPTABLE)
-
-    products = order['products']
-    for product in products:
-        try:
-            Product.objects.get(pk=product['product'])
-        except Product.DoesNotExist:
-            error_msg['error'] = f'Product with id {product["product"]} does not exists.'
-            return Response(error_msg, status=status.HTTP_406_NOT_ACCEPTABLE)
-
-    try:
-        parsed_number = parse(order['phonenumber'])
-    except NumberParseException:
-        error_msg['error'] = f'Phone number {order["phonenumber"]} is not valid.'
-        return Response(error_msg, status=status.HTTP_406_NOT_ACCEPTABLE)
-
-    if not is_valid_number(parsed_number):
-        error_msg['error'] = f'Phone number {order["phonenumber"]} is not valid.'
-        return Response(error_msg, status=status.HTTP_406_NOT_ACCEPTABLE)
+    serializer = OrderSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    validated_order = serializer.validated_data
 
     db_order = Order.objects.create(
-        first_name=order['firstname'],
-        last_name=order['lastname'],
-        phone_number=order['phonenumber'],
-        address=order['address'],
+        first_name=validated_order['firstname'],
+        last_name=validated_order['lastname'],
+        phone_number=validated_order['phonenumber'],
+        address=validated_order['address'],
     )
 
-    for order_product in order['products']:
-        OrderProduct.objects.create(
-            order=db_order,
-            product=get_object_or_404(
-                Product,
-                pk=order_product['product']
-            ),
-            amount=order_product['quantity']
-        )
+    product_fields = validated_order['products']
+    products = [
+        Product(order=db_order, **fields) for fields in product_fields
+    ]
+
+    Product.objects.bulk_create(products)
 
     return Response({})

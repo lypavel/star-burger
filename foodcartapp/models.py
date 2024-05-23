@@ -125,15 +125,15 @@ class RestaurantMenuItem(models.Model):
 
 
 class Order(models.Model):
-    first_name = models.CharField(
+    firstname = models.CharField(
         max_length=100,
         verbose_name='Имя'
     )
-    last_name = models.CharField(
+    lastname = models.CharField(
         max_length=100,
         verbose_name='Фамилия'
     )
-    phone_number = PhoneNumberField(
+    phonenumber = PhoneNumberField(
         verbose_name='номер телефона',
         db_index=True
     )
@@ -165,7 +165,7 @@ class OrderProduct(models.Model):
         on_delete=models.CASCADE
     )
 
-    amount = models.PositiveSmallIntegerField(
+    quantity = models.PositiveSmallIntegerField(
         verbose_name='количество',
         validators=[MinValueValidator(1)]
     )

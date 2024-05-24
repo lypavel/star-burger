@@ -74,9 +74,12 @@ def register_order(request):
         address=validated_order['address'],
     )
 
-    product_fields = validated_order['products']
+    order_items = validated_order['products']
+    for order_item in order_items:
+        order_item['price'] = order_item['product'].price
+
     products = [
-        OrderProduct(order=db_order, **fields) for fields in product_fields
+        OrderProduct(order=db_order, **fields) for fields in order_items
     ]
 
     OrderProduct.objects.bulk_create(products)

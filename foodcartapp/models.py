@@ -133,6 +133,12 @@ class OrderQuerySet(models.QuerySet):
 
 
 class Order(models.Model):
+    class OrderStatus(models.TextChoices):
+        created = ('Создан', 'Создан',)
+        processed = ('Подтверждён', 'Подтверждён',)
+        delivering = ('Доставляется', 'Доставляется')
+        finished = ('Завершён', 'Завершён')
+
     firstname = models.CharField(
         max_length=100,
         verbose_name='Имя'
@@ -148,6 +154,13 @@ class Order(models.Model):
     address = models.CharField(
         verbose_name='адрес',
         max_length=200
+    )
+    status = models.CharField(
+        'статус',
+        max_length=50,
+        choices=OrderStatus.choices,
+        default=OrderStatus.created,
+        db_index=True
     )
 
     objects = OrderQuerySet.as_manager()

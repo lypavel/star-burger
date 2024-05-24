@@ -140,6 +140,10 @@ class Order(models.Model):
         delivering = ('Доставляется', 'Доставляется')
         finished = ('Завершён', 'Завершён')
 
+    class PaymentMethods(models.TextChoices):
+        cash = ('Наличные', 'Наличные')
+        card = ('Банковская карта', 'Банковская карта')
+
     firstname = models.CharField(
         max_length=100,
         verbose_name='Имя'
@@ -187,6 +191,14 @@ class Order(models.Model):
         blank=True,
         null=True,
         db_index=True,
+    )
+
+    payment_method = models.CharField(
+        'Метод оплаты',
+        max_length=50,
+        choices=PaymentMethods.choices,
+        default=PaymentMethods.card,
+        db_index=True
     )
 
     objects = OrderQuerySet.as_manager()

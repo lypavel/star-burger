@@ -135,10 +135,10 @@ class OrderQuerySet(models.QuerySet):
 
 class Order(models.Model):
     class OrderStatus(models.TextChoices):
-        created = ('Создан', 'Создан',)
-        processed = ('Подтверждён', 'Подтверждён',)
-        delivering = ('Доставляется', 'Доставляется')
-        finished = ('Завершён', 'Завершён')
+        created = ('1', 'Создан',)
+        processed = ('2', 'Готовится',)
+        delivering = ('3', 'Доставляется')
+        finished = ('4', 'Завершён')
 
     class PaymentMethods(models.TextChoices):
         cash = ('Наличные', 'Наличные')
@@ -167,6 +167,15 @@ class Order(models.Model):
         choices=OrderStatus.choices,
         default=OrderStatus.created,
         db_index=True
+    )
+
+    restaurant = models.ForeignKey(
+        Restaurant,
+        on_delete=models.SET_NULL,
+        verbose_name='ресторан',
+        related_name='restaurants',
+        blank=True,
+        null=True
     )
 
     comment = models.TextField(

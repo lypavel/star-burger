@@ -5,8 +5,12 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status as st
 
+from requests.exceptions import HTTPError, ConnectionError
+
 from .models import Product, Order, OrderProduct
 from .serializers import OrderSerializer
+from places.geocoder import fetch_coordinates, create_place
+from star_burger.settings import YANDEX_GEOCODER_KEY
 
 
 def banners_list_api(request):
@@ -85,5 +89,20 @@ def register_order(request):
     ]
 
     OrderProduct.objects.bulk_create(products)
+
+    try:
+        fetched_coordinates = fetch_coordinates(
+            YANDEX_GEOCODER_KEY, validated_order['address']
+        )
+    except (HTTPError, ConnectionError):
+        fetched_coordinates = None
+
+    if fetched_coordinates:
+        order_coordinates = {
+            'latitude': fetched_coordinates[0],
+            'longtitude': fetched_coordinates[1]
+        }
+
+    create_place(validated_order['address'], order_coordinates)
 
     return Response(OrderSerializer(db_order).data, status=st.HTTP_201_CREATED)

@@ -141,8 +141,8 @@ class Order(models.Model):
         finished = ('4', 'Завершён')
 
     class PaymentMethods(models.TextChoices):
-        cash = ('Наличные', 'Наличные')
-        card = ('Банковская карта', 'Банковская карта')
+        cash = ('cash', 'Наличные')
+        card = ('card', 'Банковская карта')
 
     firstname = models.CharField(
         max_length=100,

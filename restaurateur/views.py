@@ -6,11 +6,9 @@ from django.contrib.auth.decorators import user_passes_test
 from django.contrib.auth import authenticate, login
 from django.contrib.auth import views as auth_views
 from geopy import distance
-import requests as rq
 
 from foodcartapp.models import Product, Restaurant, Order, RestaurantMenuItem
 from places.models import Place
-from star_burger.settings import YANDEX_GEOCODER_KEY
 
 
 class Login(forms.Form):
@@ -92,25 +90,6 @@ def view_restaurants(request):
     })
 
 
-def fetch_coordinates(apikey, address):
-    return 20, 30
-    # base_url = "https://geocode-maps.yandex.ru/1.x"
-    # response = rq.get(base_url, params={
-    #     "geocode": address,
-    #     "apikey": apikey,
-    #     "format": "json",
-    # })
-    # response.raise_for_status()
-    # found_places = response.json()['response']['GeoObjectCollection']['featureMember']
-
-    # if not found_places:
-    #     return None
-
-    # most_relevant = found_places[0]
-    # lon, lat = most_relevant['GeoObject']['Point']['pos'].split(" ")
-    # return lat, lon
-
-
 @user_passes_test(is_manager, login_url='restaurateur:login')
 def view_orders(request):
     orders = Order.objects\
@@ -157,13 +136,19 @@ def view_orders(request):
                 restaurant_place = places.get(restaurant.address)
                 restaurant_distance = round(
                     distance.distance(
-                        (order_place.latitude, order_place.longtitude),
-                        (restaurant_place.latitude, restaurant_place.longtitude)
+                        (order_place.latitude,
+                         order_place.longtitude),
+                        (restaurant_place.latitude,
+                         restaurant_place.longtitude)
                     ).km,
                     ndigits=2
                 )
-                restaurant_distances.append((restaurant.name, restaurant_distance))
-                order.restaurant_distances = sorted(restaurant_distances, key=lambda x: x[1])
+                restaurant_distances.append(
+                    (restaurant.name, restaurant_distance)
+                )
+                order.restaurant_distances = sorted(
+                    restaurant_distances, key=lambda x: x[1]
+                )
 
     return render(request, template_name='order_items.html', context={
         'orders': orders

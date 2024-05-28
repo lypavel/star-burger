@@ -9,6 +9,7 @@ from geopy import distance
 import requests as rq
 
 from foodcartapp.models import Product, Restaurant, Order, RestaurantMenuItem
+from places.models import Place
 from star_burger.settings import YANDEX_GEOCODER_KEY
 
 
@@ -92,79 +93,78 @@ def view_restaurants(request):
 
 
 def fetch_coordinates(apikey, address):
-    base_url = "https://geocode-maps.yandex.ru/1.x"
-    response = rq.get(base_url, params={
-        "geocode": address,
-        "apikey": apikey,
-        "format": "json",
-    })
-    response.raise_for_status()
-    found_places = response.json()['response']['GeoObjectCollection']['featureMember']
+    return 20, 30
+    # base_url = "https://geocode-maps.yandex.ru/1.x"
+    # response = rq.get(base_url, params={
+    #     "geocode": address,
+    #     "apikey": apikey,
+    #     "format": "json",
+    # })
+    # response.raise_for_status()
+    # found_places = response.json()['response']['GeoObjectCollection']['featureMember']
 
-    if not found_places:
-        return None
+    # if not found_places:
+    #     return None
 
-    most_relevant = found_places[0]
-    lon, lat = most_relevant['GeoObject']['Point']['pos'].split(" ")
-    return lat, lon
+    # most_relevant = found_places[0]
+    # lon, lat = most_relevant['GeoObject']['Point']['pos'].split(" ")
+    # return lat, lon
 
 
 @user_passes_test(is_manager, login_url='restaurateur:login')
 def view_orders(request):
     orders = Order.objects\
         .exclude(status=Order.OrderStatus.finished)\
-        .prefetch_related('products', 'restaurant')\
+        .prefetch_related('products', 'restaurant', 'products__product')\
         .annotate(full_price=Order.objects.calculate_full_price())\
         .order_by('status', 'id')
 
-    menu_items = RestaurantMenuItem.objects\
-        .prefetch_related('product', 'restaurant')
+    restaurant_menu_items = RestaurantMenuItem.objects\
+        .filter(availability=True)\
+        .select_related('product', 'restaurant')
 
-    restaurants = Restaurant.objects.all()
+    places = Place.objects.filter(
+        address__in=[
+            order.address for order in orders
+        ] + [
+            restaurant.address for restaurant in Restaurant.objects.all()
+        ]
+    )
+
+    places = {place.address: place for place in places}
 
     for order in orders:
-        available_restaurants = {}
+        order.restaurants = set()
+        for order_product in order.products.all():
+            product_restaurants = [
+                menu_item.restaurant for menu_item in restaurant_menu_items
+                if menu_item.product.id == order_product.product.id
+            ]
 
-        order_coordinates = fetch_coordinates(YANDEX_GEOCODER_KEY, order.address)
-        for order_product in order.products.select_related('product'):
-            possible_restaurants = set(
-                menu_items\
-                    .filter(product=order_product.product)\
-                    .values_list('restaurant', flat=True)
-            )
-            if not available_restaurants:
-                available_restaurants = possible_restaurants
-            else:
-                available_restaurants.intersection_update(possible_restaurants)
+            if not order.restaurants:
+                order.restaurants = set(product_restaurants)
+                continue
 
-        final_restaurants = []
-        for restaurant in available_restaurants:
-            restaurant_db = restaurants.get(pk=restaurant)
-            restaurant_coordinates = fetch_coordinates(YANDEX_GEOCODER_KEY, restaurant_db.address)
-            order_distance = None
-            if restaurant_coordinates and order_coordinates:
-                order_distance = distance.distance(
-                    (order_coordinates),
-                    (restaurant_coordinates)
-                ).km
-
-            if order_distance:
-                order_distance = round(order_distance, 2)
-            else:
-                order_distance = 'Ошибка определения координат'
-
-            final_restaurants.append(
-                {
-                    'name': restaurant_db.name,
-                    'distance':  order_distance
-                }
-            )
-
-        order.restaurants = sorted(
-            final_restaurants,
-            key=lambda restaurant: restaurant['distance']
-        )
+            order.restaurants.intersection_update(product_restaurants)
+        order_place = places.get(order.address)
+        if not order_place:
+            order.no_coordinates = True
+        elif order_place.latitude is None or order_place.longtitude is None:
+            order.no_coordinates = True
+        else:
+            restaurant_distances = []
+            for restaurant in order.restaurants:
+                restaurant_place = places.get(restaurant.address)
+                restaurant_distance = round(
+                    distance.distance(
+                        (order_place.latitude, order_place.longtitude),
+                        (restaurant_place.latitude, restaurant_place.longtitude)
+                    ).km,
+                    ndigits=2
+                )
+                restaurant_distances.append((restaurant.name, restaurant_distance))
+                order.restaurant_distances = sorted(restaurant_distances, key=lambda x: x[1])
 
     return render(request, template_name='order_items.html', context={
-        'order_items': orders
+        'orders': orders
     })

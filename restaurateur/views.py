@@ -3,12 +3,13 @@ from django.shortcuts import redirect, render
 from django.views import View
 from django.urls import reverse_lazy
 from django.contrib.auth.decorators import user_passes_test
-
 from django.contrib.auth import authenticate, login
 from django.contrib.auth import views as auth_views
-
+from geopy import distance
+import requests as rq
 
 from foodcartapp.models import Product, Restaurant, Order, RestaurantMenuItem
+from star_burger.settings import YANDEX_GEOCODER_KEY
 
 
 class Login(forms.Form):
@@ -90,6 +91,24 @@ def view_restaurants(request):
     })
 
 
+def fetch_coordinates(apikey, address):
+    base_url = "https://geocode-maps.yandex.ru/1.x"
+    response = rq.get(base_url, params={
+        "geocode": address,
+        "apikey": apikey,
+        "format": "json",
+    })
+    response.raise_for_status()
+    found_places = response.json()['response']['GeoObjectCollection']['featureMember']
+
+    if not found_places:
+        return None
+
+    most_relevant = found_places[0]
+    lon, lat = most_relevant['GeoObject']['Point']['pos'].split(" ")
+    return lat, lon
+
+
 @user_passes_test(is_manager, login_url='restaurateur:login')
 def view_orders(request):
     orders = Order.objects\
@@ -101,21 +120,50 @@ def view_orders(request):
     menu_items = RestaurantMenuItem.objects\
         .prefetch_related('product', 'restaurant')
 
-    for order in orders:
-        restaurants = {}
+    restaurants = Restaurant.objects.all()
 
+    for order in orders:
+        available_restaurants = {}
+
+        order_coordinates = fetch_coordinates(YANDEX_GEOCODER_KEY, order.address)
         for order_product in order.products.select_related('product'):
             possible_restaurants = set(
                 menu_items\
                     .filter(product=order_product.product)\
-                    .values_list('restaurant__name', flat=True)
+                    .values_list('restaurant', flat=True)
             )
-            if not restaurants:
-                restaurants = possible_restaurants
+            if not available_restaurants:
+                available_restaurants = possible_restaurants
             else:
-                restaurants.intersection_update(possible_restaurants)
+                available_restaurants.intersection_update(possible_restaurants)
 
-        order.restaurants = restaurants
+        final_restaurants = []
+        for restaurant in available_restaurants:
+            restaurant_db = restaurants.get(pk=restaurant)
+            restaurant_coordinates = fetch_coordinates(YANDEX_GEOCODER_KEY, restaurant_db.address)
+            order_distance = None
+            if restaurant_coordinates and order_coordinates:
+                order_distance = distance.distance(
+                    (order_coordinates),
+                    (restaurant_coordinates)
+                ).km
+
+            if order_distance:
+                order_distance = round(order_distance, 2)
+            else:
+                order_distance = 'Ошибка определения координат'
+
+            final_restaurants.append(
+                {
+                    'name': restaurant_db.name,
+                    'distance':  order_distance
+                }
+            )
+
+        order.restaurants = sorted(
+            final_restaurants,
+            key=lambda restaurant: restaurant['distance']
+        )
 
     return render(request, template_name='order_items.html', context={
         'order_items': orders

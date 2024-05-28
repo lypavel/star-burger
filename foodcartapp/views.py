@@ -102,6 +102,8 @@ def register_order(request):
             'latitude': fetched_coordinates[0],
             'longtitude': fetched_coordinates[1]
         }
+    else:
+        order_coordinates = None
 
     create_place(validated_order['address'], order_coordinates)
 

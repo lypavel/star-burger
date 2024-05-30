@@ -5,12 +5,8 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status as st
 
-from requests.exceptions import HTTPError, ConnectionError
-
-from .models import Product, Order, OrderProduct
+from .models import Product
 from .serializers import OrderSerializer
-from places.geocoder import fetch_coordinates, create_place
-from star_burger.settings import YANDEX_GEOCODER_KEY
 
 
 def banners_list_api(request):
@@ -71,40 +67,6 @@ def register_order(request):
 
     serializer = OrderSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-    validated_order = serializer.validated_data
+    serializer.create(serializer.validated_data)
 
-    db_order = Order.objects.create(
-        firstname=validated_order['firstname'],
-        lastname=validated_order['lastname'],
-        phonenumber=validated_order['phonenumber'],
-        address=validated_order['address'],
-    )
-
-    order_items = validated_order['products']
-    for order_item in order_items:
-        order_item['price'] = order_item['product'].price
-
-    products = [
-        OrderProduct(order=db_order, **fields) for fields in order_items
-    ]
-
-    OrderProduct.objects.bulk_create(products)
-
-    try:
-        fetched_coordinates = fetch_coordinates(
-            YANDEX_GEOCODER_KEY, validated_order['address']
-        )
-    except (HTTPError, ConnectionError):
-        fetched_coordinates = None
-
-    if fetched_coordinates:
-        order_coordinates = {
-            'latitude': fetched_coordinates[0],
-            'longtitude': fetched_coordinates[1]
-        }
-    else:
-        order_coordinates = None
-
-    create_place(validated_order['address'], order_coordinates)
-
-    return Response(OrderSerializer(db_order).data, status=st.HTTP_201_CREATED)
+    return Response(serializer.data, status=st.HTTP_201_CREATED)

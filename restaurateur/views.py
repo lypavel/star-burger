@@ -90,6 +90,15 @@ def view_restaurants(request):
     })
 
 
+def validate_coordinates(coordinates: Place) -> bool:
+    if coordinates is None:
+        return False
+    elif coordinates.latitude is None or coordinates.longtitude is None:
+        return False
+
+    return True
+
+
 @user_passes_test(is_manager, login_url='restaurateur:login')
 def view_orders(request):
     orders = Order.objects\
@@ -126,29 +135,35 @@ def view_orders(request):
 
             order.restaurants.intersection_update(product_restaurants)
         order_place = places.get(order.address)
-        if not order_place:
-            order.no_coordinates = True
-        elif order_place.latitude is None or order_place.longtitude is None:
+        if not validate_coordinates(order_place):
             order.no_coordinates = True
         else:
             restaurant_distances = []
             for restaurant in order.restaurants:
                 restaurant_place = places.get(restaurant.address)
-                restaurant_distance = round(
-                    distance.distance(
-                        (order_place.latitude,
-                         order_place.longtitude),
-                        (restaurant_place.latitude,
-                         restaurant_place.longtitude)
-                    ).km,
-                    ndigits=2
-                )
-                restaurant_distances.append(
-                    (restaurant.name, restaurant_distance)
-                )
-                order.restaurant_distances = sorted(
-                    restaurant_distances, key=lambda x: x[1]
-                )
+                if not validate_coordinates(restaurant_place):
+                    order.no_coordinates = True
+                    order.restaurant_distances = None
+                else:
+                    restaurant_distance = round(
+                        distance.distance(
+                            (
+                                order_place.latitude,
+                                order_place.longtitude
+                            ),
+                            (
+                                restaurant_place.latitude,
+                                restaurant_place.longtitude
+                            )
+                        ).km,
+                        ndigits=2
+                    )
+                    restaurant_distances.append(
+                        (restaurant.name, restaurant_distance)
+                    )
+                    order.restaurant_distances = sorted(
+                        restaurant_distances, key=lambda x: x[1]
+                    )
 
     return render(request, template_name='order_items.html', context={
         'orders': orders

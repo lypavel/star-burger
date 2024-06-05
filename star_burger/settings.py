@@ -41,7 +41,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'debug_toolbar.middleware.DebugToolbarMiddleware',
-    'rollbar.contrib.django.middleware.RollbarNotifierMiddleware',
+    'rollbar.contrib.django.middleware.RollbarNotifierMiddlewareExcluding404',
 ]
 
 ROOT_URLCONF = 'star_burger.urls'
@@ -132,8 +132,8 @@ PHONENUMBER_DEFAULT_REGION = 'RU'
 YANDEX_GEOCODER_KEY = env.str('YANDEX_GEOCODER_KEY')
 
 ROLLBAR = {
-    'access_token': '034879466da441bca27fb2ea34d3b0be',
-    'environment': 'development' if DEBUG else 'production',
+    'access_token': env.str('ROLLBAR_POST_SERVER_ITEM_TOKEN', ''),
+    'environment': env.str('ROLLBAR_ENVIRONMENT', 'production'),
     'code_version': '1.0',
     'root': BASE_DIR,
 }

@@ -119,9 +119,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-INTERNAL_IPS = [
-    '127.0.0.1'
-]
+INTERNAL_IPS = env.list('DEBUG_TOOLBAR_IP', [])
 
 
 STATICFILES_DIRS = [

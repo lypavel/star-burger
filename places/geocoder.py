@@ -1,3 +1,4 @@
+from django.utils import timezone
 import requests as rq
 
 from .models import Place
@@ -28,8 +29,11 @@ def create_place(address, coordinates=None):
     else:
         latitude = longtitude = None
 
-    place, _ = Place.objects.get_or_create(
+    place, _ = Place.objects.update_or_create(
         address=address,
-        latitude=latitude,
-        longtitude=longtitude
+        defaults={
+            "latitude": latitude,
+            "longtitude": longtitude,
+            "updated_at": timezone.now()
+        }
     )

@@ -93,7 +93,7 @@ def view_restaurants(request):
 def validate_coordinates(coordinates: Place) -> bool:
     if coordinates is None:
         return False
-    elif coordinates.latitude is None or coordinates.longtitude is None:
+    elif coordinates.latitude is None or coordinates.longitude is None:
         return False
 
     return True
@@ -149,11 +149,11 @@ def view_orders(request):
                         distance.distance(
                             (
                                 order_place.latitude,
-                                order_place.longtitude
+                                order_place.longitude
                             ),
                             (
                                 restaurant_place.latitude,
-                                restaurant_place.longtitude
+                                restaurant_place.longitude
                             )
                         ).km,
                         ndigits=2

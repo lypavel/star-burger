@@ -25,15 +25,15 @@ def fetch_coordinates(apikey, address):
 def create_place(address, coordinates=None):
     if coordinates:
         latitude = coordinates['latitude']
-        longtitude = coordinates['longtitude']
+        longitude = coordinates['longitude']
     else:
-        latitude = longtitude = None
+        latitude = longitude = None
 
     place, _ = Place.objects.update_or_create(
         address=address,
         defaults={
             "latitude": latitude,
-            "longtitude": longtitude,
+            "longitude": longitude,
             "updated_at": timezone.now()
         }
     )

@@ -58,7 +58,7 @@ class OrderSerializer(ModelSerializer):
         if fetched_coordinates:
             order_coordinates = {
                 'latitude': fetched_coordinates[0],
-                'longtitude': fetched_coordinates[1]
+                'longitude': fetched_coordinates[1]
             }
         else:
             order_coordinates = None

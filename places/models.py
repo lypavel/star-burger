@@ -16,7 +16,7 @@ class Place(models.Model):
         blank=True,
         null=True
     )
-    longtitude = models.DecimalField(
+    longitude = models.DecimalField(
         'долгота',
         max_digits=8,
         decimal_places=2,

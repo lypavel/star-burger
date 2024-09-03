@@ -26,8 +26,8 @@ sudo systemctl stop star-burger.service
 
 docker-compose down
 
-# git checkout master
-# git pull --rebase
+git checkout master
+git pull --rebase
 
 docker-compose up --build -d
 

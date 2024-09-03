@@ -17,143 +17,96 @@
 
 ## Как запустить dev-версию сайта
 
-Для запуска сайта нужно запустить **одновременно** бэкенд и фронтенд, в двух терминалах.
+Для запуска сайта используются Docker-контейнеры. Необходимо одновременно запустить контейнеры с фронтэндом, бекэндом и базой данных.
 
-### Как собрать бэкенд
+1. Установите [Docker](https://docs.docker.com/engine/install/), если это не было сделано ранее.
+2. Скачайте код
+    ```sh
+    git clone https://github.com/devmanorg/star-burger.git
+    ```
+3. Создайте в корне директории с проектом файл `.env`, внесите в него необходимые данные:
+    ```ini
+    DEBUG=True  # дебаг-режим, обязательно True для dev-версии
+    SECRET_KEY=секретный_ключ_джанго
 
-Скачайте код:
-```sh
-git clone https://github.com/devmanorg/star-burger.git
-```
+    ALLOWED_HOSTS=список разрешённых хостов
+    DEBUG_TOOLBAR_IP=список разрешённых хостов для отображения Django Debug Toolbar
 
-Перейдите в каталог проекта:
-```sh
-cd star-burger
-```
+    YANDEX_GEOCODER_KEY=api ключ yandex геокодера
 
-[Установите Python](https://www.python.org/), если этого ещё не сделали.
+    ROLLBAR_POST_SERVER_ITEM_TOKEN=api ключ сервиса логгирования Rollbar
+    ROLLBAR_ENVIRONMENT='development'  # название среды для Rollbar
 
-Проверьте, что `python` установлен и корректно настроен. Запустите его в командной строке:
-```sh
-python --version
-```
-**Важно!** Версия Python должна быть не ниже 3.6.
+    POSTGRES_USER=имя пользователя базы данных
+    POSTGRES_PASSWORD=пароль пользователя базы данных
+    POSTGRES_DB=star_burger  # название базы данных
 
-Возможно, вместо команды `python` здесь и в остальных инструкциях этого README придётся использовать `python3`. Зависит это от операционной системы и от того, установлен ли у вас Python старой второй версии. 
-
-В каталоге проекта создайте виртуальное окружение:
-```sh
-python -m venv venv
-```
-Активируйте его. На разных операционных системах это делается разными командами:
-
-- Windows: `.\venv\Scripts\activate`
-- MacOS/Linux: `source venv/bin/activate`
-
-
-Установите зависимости в виртуальное окружение:
-```sh
-pip install -r requirements.txt
-```
-
-Определите переменную окружения `SECRET_KEY`. Создать файл `.env` в каталоге `star_burger/` и положите туда такой код:
-```sh
-SECRET_KEY=django-insecure-0if40nf4nf93n4
-```
-
-Создайте файл базы данных SQLite и отмигрируйте её следующей командой:
-
-```sh
-python manage.py migrate
-```
-
-Запустите сервер:
-
-```sh
-python manage.py runserver
-```
-
-Откройте сайт в браузере по адресу [http://127.0.0.1:8000/](http://127.0.0.1:8000/). Если вы увидели пустую белую страницу, то не пугайтесь, выдохните. Просто фронтенд пока ещё не собран. Переходите к следующему разделу README.
-
-### Собрать фронтенд
-
-**Откройте новый терминал**. Для работы сайта в dev-режиме необходима одновременная работа сразу двух программ `runserver` и `parcel`. Каждая требует себе отдельного терминала. Чтобы не выключать `runserver` откройте для фронтенда новый терминал и все нижеследующие инструкции выполняйте там.
-
-[Установите Node.js](https://nodejs.org/en/), если у вас его ещё нет.
-
-Проверьте, что Node.js и его пакетный менеджер корректно установлены. Если всё исправно, то терминал выведет их версии:
-
-```sh
-nodejs --version
-# v16.16.0
-# Если ошибка, попробуйте node:
-node --version
-# v16.16.0
-
-npm --version
-# 8.11.0
-```
-
-Версия `nodejs` должна быть не младше `10.0` и не старше `16.16`. Лучше ставьте `16.16.0`, её мы тестировали. Версия `npm` не важна. Как обновить Node.js читайте в статье: [How to Update Node.js](https://phoenixnap.com/kb/update-node-js-version).
-
-Перейдите в каталог проекта и установите пакеты Node.js:
-
-```sh
-cd star-burger
-npm ci --dev
-```
-
-Команда `npm ci` создаст каталог `node_modules` и установит туда пакеты Node.js. Получится аналог виртуального окружения как для Python, но для Node.js.
-
-Помимо прочего будет установлен [Parcel](https://parceljs.org/) — это упаковщик веб-приложений, похожий на [Webpack](https://webpack.js.org/). В отличии от Webpack он прост в использовании и совсем не требует настроек.
-
-Теперь запустите сборку фронтенда и не выключайте. Parcel будет работать в фоне и следить за изменениями в JS-коде:
-
-```sh
-./node_modules/.bin/parcel watch bundles-src/index.js --dist-dir bundles --public-url="./"
-```
-
-Если вы на Windows, то вам нужна та же команда, только с другими слешами в путях:
-
-```sh
-.\node_modules\.bin\parcel watch bundles-src/index.js --dist-dir bundles --public-url="./"
-```
-
-Дождитесь завершения первичной сборки. Это вполне может занять 10 и более секунд. О готовности вы узнаете по сообщению в консоли:
-
-```
-✨  Built in 10.89s
-```
-
-Parcel будет следить за файлами в каталоге `bundles-src`. Сначала он прочитает содержимое `index.js` и узнает какие другие файлы он импортирует. Затем Parcel перейдёт в каждый из этих подключенных файлов и узнает что импортируют они. И так далее, пока не закончатся файлы. В итоге Parcel получит полный список зависимостей. Дальше он соберёт все эти сотни мелких файлов в большие бандлы `bundles/index.js` и `bundles/index.css`. Они полностью самодостаточны, и потому пригодны для запуска в браузере. Именно эти бандлы сервер отправит клиенту.
-
-Теперь если зайти на страницу  [http://127.0.0.1:8000/](http://127.0.0.1:8000/), то вместо пустой страницы вы увидите:
-
-![](https://dvmn.org/filer/canonical/1594651900/687/)
-
-Каталог `bundles` в репозитории особенный — туда Parcel складывает результаты своей работы. Эта директория предназначена исключительно для результатов сборки фронтенда и потому исключёна из репозитория с помощью `.gitignore`.
-
-**Сбросьте кэш браузера <kbd>Ctrl-F5</kbd>.** Браузер при любой возможности старается кэшировать файлы статики: CSS, картинки и js-код. Порой это приводит к странному поведению сайта, когда код уже давно изменился, но браузер этого не замечает и продолжает использовать старую закэшированную версию. В норме Parcel решает эту проблему самостоятельно. Он следит за пересборкой фронтенда и предупреждает JS-код в браузере о необходимости подтянуть свежий код. Но если вдруг что-то у вас идёт не так, то начните ремонт со сброса браузерного кэша, жмите <kbd>Ctrl-F5</kbd>.
-
+    POSTGRES_DB_URL='postgresql://user:password@host:port/name'  # url postgres БД для Django
+    ```
+4. Перейдите в директорию `dev/`:
+    ```sh
+    cd star-burger/dev/
+    ```
+5. Запустите скрипт сборки dev-версии
+    ```sh
+    ./build_dev.sh
+    ```
+6. Проверьте, что всё работает
+    ```sh
+    >>> docker-compose ps
+            Name                      Command               State                    Ports
+    --------------------------------------------------------------------------------------------------------
+    star_burger_backend    python manage.py runserver ...   Up      0.0.0.0:8000->8000/tcp,:::8000->8000/tcp
+    star_burger_frontend   docker-entrypoint.sh ./nod ...   Up
+    star_burger_postgres   docker-entrypoint.sh postgres    Up      0.0.0.0:5432->5432/tcp,:::5432->5432/tcp
+    ```
 
 ## Как запустить prod-версию сайта
 
-Собрать фронтенд:
+1. Установите [Docker](https://docs.docker.com/engine/install/), если это не было сделано ранее.
+2. Скачайте код
+    ```sh
+    git clone https://github.com/devmanorg/star-burger.git
+    ```
+3. Создайте в корне директории с проектом файл `.env`, внесите в него необходимые данные:
+    ```ini
+    DEBUG=False  # дебаг-режим, обязательно False для prod-версии
+    SECRET_KEY=секретный_ключ_джанго
 
-```sh
-./node_modules/.bin/parcel build bundles-src/index.js --dist-dir bundles --public-url="./"
-```
+    ALLOWED_HOSTS=список разрешённых хостов
+    DEBUG_TOOLBAR_IP=список разрешённых хостов для отображения Django Debug Toolbar
 
-Настроить бэкенд: создать файл `.env` в каталоге `star_burger/` со следующими настройками:
+    YANDEX_GEOCODER_KEY=api ключ yandex геокодера
 
-- `DEBUG` — дебаг-режим. Поставьте `False`.
-- `DEBUG_TOOLBAR_IP` - список IP адресов, для которых будет отображаться Django Debug Toolbar.
-- `SECRET_KEY` — секретный ключ проекта. Он отвечает за шифрование на сайте. Например, им зашифрованы все пароли на вашем сайте.
-- `ALLOWED_HOSTS` — [см. документацию Django](https://docs.djangoproject.com/en/3.1/ref/settings/#allowed-hosts)
-- `YANDEX_GEOCODER_KEY` - API ключ для геокодера Яндекса. Подробнее см. [документацию Яндекса](https://developer.tech.yandex.ru/)
-- `POSTGRES_DB_URL` - `url` базы данных под управлением PostgreSQL в формате `postgresql://USER:PASSWORD@HOST:PORT/NAME`
-- `ROLLBAR_POST_SERVER_ITEM_TOKEN` - `post_server_item` токен для вашего проекта в [Rollbar](https://rollbar.com/)
-- `ROLLBAR_ENVIRONMENT` - название текущего окружения для [Rollbar](https://rollbar.com/)
+    ROLLBAR_POST_SERVER_ITEM_TOKEN=api ключ сервиса логгирования Rollbar
+    ROLLBAR_ENVIRONMENT='production'  # название среды для Rollbar
+
+    POSTGRES_USER=имя пользователя базы данных
+    POSTGRES_PASSWORD=пароль пользователя базы данных
+    POSTGRES_DB=star_burger  # название базы данных
+
+    POSTGRES_DB_URL='postgresql://user:password@host:port/name'  # url postgres БД для Django
+    ```
+4. Перейдите в директорию `prod/`:
+    ```sh
+    cd star-burger/prod/
+    ```
+5. Запустите скрипт сборки prod-версии
+    ```sh
+    sudo ROLLBAR_SERVER_POST_TOKEN=rollbar_token ./deploy.sh
+    ```
+6. Проверьте, что всё работает
+    ```sh
+    >>> docker-compose ps
+            Name                      Command               State                     Ports
+    ---------------------------------------------------------------------------------------------------------
+    star_burger_backend    gunicorn -w 5 -b 0.0.0.0:8 ...   Up       127.0.0.1:8000->8000/tcp
+    star_burger_frontend   docker-entrypoint.sh ./nod ...   Exit 0
+    star_burger_postgres   docker-entrypoint.sh postgres    Up       0.0.0.0:5432->5432/tcp,:::5432->5432/tcp
+    ```
+
+Файлы статики будут находиться в директории `staticfiles/` в корне проекта.
+Медиа файлы будут находиться в директории `media/` в корне проекта.
 
 ## Цели проекта
 
@@ -162,3 +115,4 @@ Parcel будет следить за файлами в каталоге `bundle
 Где используется репозиторий:
 
 - Второй и третий урок [учебного курса Django](https://dvmn.org/modules/django/)
+- Второй урок [учебного курса Docker](https://dvmn.org/modules/docker-v2/)

@@ -4,14 +4,14 @@
 
 set -Eeuo pipefail
 
-check for sudo privileges
+# check for sudo privileges
 if [[ $UID != 0 ]]; then
     echo "Please run this script with sudo:"
     echo "sudo -E $0 $*"
     exit 1
 fi
 
-check for avaliable rollbar token
+# check for avaliable rollbar token
 if [ -z "${ROLLBAR_SERVER_POST_TOKEN+x}" ]; then
     echo -e "ROLLBAR_SERVER_POST_TOKEN is not set.\n\nExport the variable and use:\n"
     echo -e "sudo -E $0 $*\n"

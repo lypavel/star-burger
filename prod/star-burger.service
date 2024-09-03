@@ -1,0 +1,13 @@
+[Unit]
+Description=Star Burger site
+After=network.target docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/star-burger-dockerized/prod/
+ExecStart=docker-compose up
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

@@ -15,7 +15,9 @@ services:
   frontend:
     image: star_burger_frontend
     container_name: star_burger_frontend
-    build: ../frontend
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile.dev
     volumes:
       - assets:/opt/star-burger/assets
     command: ./node_modules/.bin/parcel watch bundles-src/index.js --dist-dir assets --public-url="./"
@@ -25,7 +27,9 @@ services:
   backend:
     image: star_burger_backend
     container_name: star_burger_backend
-    build: ../backend
+    build:
+      context: ../backend
+      dockerfile: Dockerfile.dev
     volumes:
       - assets:/opt/star-burger/assets
       - media:/opt/star-burger/media
